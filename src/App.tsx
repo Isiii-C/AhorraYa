@@ -90,7 +90,7 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<OverviewPage goals={goalsApi.goals} settings={settings} user={user} />} />
+      <Route path="/" element={<OverviewPage goals={goalsApi.goals} goalsApi={goalsApi} settings={settings} user={user} />} />
       <Route path="/goals/new" element={<GoalEditorPage goalsApi={goalsApi} user={user} />} />
       <Route path="/goals/:goalId" element={<GoalDetailPage goalsApi={goalsApi} />} />
       <Route path="/goals/:goalId/edit" element={<GoalEditorPage goalsApi={goalsApi} user={user} />} />
@@ -167,9 +167,10 @@ function AuthPage() {
   );
 }
 
-function OverviewPage({ goals, settings, user }: { goals: Goal[]; settings: AppSettings; user: ApiUser }) {
+function OverviewPage({ goals, goalsApi, settings, user }: { goals: Goal[]; goalsApi: ReturnType<typeof useGoalsData>; settings: AppSettings; user: ApiUser }) {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<'personal' | 'shared'>('personal');
+  const [openGoalMenu, setOpenGoalMenu] = useState<string | null>(null);
   const personalGoals = goals.filter((goal) => !goal.shared);
   const sharedGoals = goals.filter((goal) => goal.shared);
 
@@ -179,15 +180,32 @@ function OverviewPage({ goals, settings, user }: { goals: Goal[]; settings: AppS
     const progress = percentOf(goal.goalAmount, savedAmount);
     const estimate = getEstimate(savedAmount, goal.goalAmount, monthlyTotal);
 
+    const isOwner = goal.ownerId === user.id;
     return (
-      <button className="goal-card" key={goal.id} onClick={() => navigate(`/goals/${goal.id}`)}>
-        <div className="mini-ring" style={{ background: `conic-gradient(var(--gold) ${progress}%, var(--ring) 0)` }}><span>{progress}%</span></div>
-        <div className="goal-card-copy">
-          <div className="goal-meta"><span>{goal.shared ? 'Compartida' : 'Personal'}</span><strong>{estimate ? `${estimate.month} ${estimate.year}` : 'Sin cálculo'}</strong></div>
-          <h2>{goal.name}</h2>
-          <p>{formatCurrency(savedAmount)} / {formatCurrency(goal.goalAmount)}</p>
+      <div className="goal-card-row" key={goal.id}>
+        <button className="goal-card" onClick={() => navigate(`/goals/${goal.id}`)}>
+          <div className="mini-ring" style={{ background: `conic-gradient(var(--gold) ${progress}%, var(--ring) 0)` }}><span>{progress}%</span></div>
+          <div className="goal-card-copy">
+            <div className="goal-meta"><span>{goal.shared ? 'Compartida' : 'Personal'}</span><strong>{estimate ? `${estimate.month} ${estimate.year}` : 'Sin cálculo'}</strong></div>
+            <h2>{goal.name}</h2>
+            <p>{formatCurrency(savedAmount)} / {formatCurrency(goal.goalAmount)}</p>
+          </div>
+        </button>
+        <div className="goal-card-menu">
+          <button className="goal-card-menu-button" onClick={() => setOpenGoalMenu(openGoalMenu === goal.id ? null : goal.id)} aria-label={`Opciones de ${goal.name}`} aria-expanded={openGoalMenu === goal.id}>⋮</button>
+          {openGoalMenu === goal.id && (
+            <div className="goal-card-menu-panel">
+              <button onClick={() => navigate(`/goals/${goal.id}/edit`)}>Editar</button>
+              <button className="goal-menu-delete" onClick={async () => {
+                if (!window.confirm(isOwner ? '¿Eliminar esta meta?' : '¿Salir de esta meta compartida?')) return;
+                if (isOwner) await goalsApi.deleteGoal(goal.id);
+                else await goalsApi.leaveGoal(goal.id);
+                setOpenGoalMenu(null);
+              }}>{isOwner ? 'Eliminar meta' : 'Salir de la meta'}</button>
+            </div>
+          )}
         </div>
-      </button>
+      </div>
     );
   };
 
@@ -498,6 +516,7 @@ function GoalDetailPage({ goalsApi }: { goalsApi: ReturnType<typeof useGoalsData
     }));
   };
 
+       const [menuOpen, setMenuOpen] = useState(false);
   const toggleContribution = (entryId: string, contributorId: string) => {
     goalsApi.patchGoal(goal.id, (currentGoal) => ({
       ...currentGoal,
@@ -575,6 +594,26 @@ function GoalDetailPage({ goalsApi }: { goalsApi: ReturnType<typeof useGoalsData
               </div>
             </div>
           </div>
+               <div className="goal-menu">
+                 <button className="icon-button" onClick={() => setMenuOpen((open) => !open)} aria-label="Más opciones" aria-expanded={menuOpen}>
+                   ⋮
+                 </button>
+                 {menuOpen && (
+                   <div className="goal-menu-panel">
+                     <button
+                       className="goal-menu-delete"
+                       onClick={async () => {
+                         const action = isOwner ? goalsApi.deleteGoal : goalsApi.leaveGoal;
+                         if (!window.confirm(isOwner ? '¿Eliminar esta meta?' : '¿Salir de esta meta compartida?')) return;
+                         await action(goal.id);
+                         navigate('/');
+                       }}
+                     >
+                       {isOwner ? 'Eliminar meta' : 'Salir de la meta'}
+                     </button>
+                   </div>
+                 )}
+               </div>
 
           <hr />
 

@@ -448,6 +448,67 @@ h2 {
   color: inherit;
 }
 
+.goal-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal-card-row .goal-card {
+  flex: 1;
+}
+
+.goal-card-menu {
+  position: relative;
+  flex: 0 0 42px;
+}
+
+.goal-card-menu-button {
+  width: 42px;
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-alt);
+  color: var(--muted);
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.goal-card-menu-panel {
+  position: absolute;
+  top: 56px;
+  right: 0;
+  z-index: 15;
+  display: grid;
+  min-width: 150px;
+  gap: 2px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.goal-card-menu-panel button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  font-weight: 700;
+}
+
+.goal-card-menu-panel button:hover {
+  background: var(--surface-alt);
+}
+
+.goal-card-menu-panel .goal-menu-delete {
+  color: var(--danger);
+}
+
 .goal-card:hover {
   border-color: var(--line);
   transform: translateY(-1px);
